@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Text, FlatList, View, Button } from "react-native";
+import { Text, FlatList, View, Button, Modal } from "react-native";
 import { onValue, remove } from "firebase/database";
 import { Calendar } from "react-native-calendars";
 import { StyleSheet } from "react-native";
@@ -52,6 +52,8 @@ const styles = StyleSheet.create({
 function HomeScreen({ navigation }) {
     const [plans, setPlans] = useState([]);
     const [markedDates, setMarkedDates] = useState({});
+    const [modalVisible, setModalVisible] = useState(false);
+    const [selectedPlan, setSelectedPlan] = useState(null);
   
     useEffect(() => {
       const db = getDatabase();
@@ -96,6 +98,14 @@ function HomeScreen({ navigation }) {
         <Button title="Delete" onPress={() => deletePlan(item.key)} color="red" />
       </View>
     );
+
+    const handleDayPress = (day) => {
+      const plan = plans.find(p => new Date(p.startTime) <= new Date(day.dateString) && new Date(p.endTime) >= new Date(day.dateString));
+      if (plan) {
+        setSelectedPlan(plan);
+        setModalVisible(true);
+      }
+    };
   
     return (
       <View style={styles.container}>
@@ -103,7 +113,30 @@ function HomeScreen({ navigation }) {
         <Calendar
           markingType={'simple'}
           markedDates={markedDates}
+          onDayPress={handleDayPress}
         />
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={modalVisible}
+          onRequestClose={() => {
+            setModalVisible(!modalVisible);
+          }}
+        >
+          <View style={{ marginTop: 50, marginHorizontal: 20, padding: 20, backgroundColor: 'white', borderRadius: 10, shadowOpacity: 0.25, shadowRadius: 3.84, elevation: 5 }}>
+            <Text style={{ fontWeight: 'bold', fontSize: 18 }}>Travel Plan Details</Text>
+            {selectedPlan ? (
+              <>
+                <Text>Destination: {selectedPlan.destination}</Text>
+                <Text>Description: {selectedPlan.description}</Text>
+                <Text>Budget: {selectedPlan.budget}€</Text>
+                <Text>Start Time: {selectedPlan.startTime}</Text>
+                <Text>End Time: {selectedPlan.endTime}</Text>
+              </>
+            ) : <Text>No plans for this day.</Text>}
+            <Button title="Close" onPress={() => setModalVisible(false)} />
+          </View>
+        </Modal>
         <Button title="Add Plan" onPress={() => navigation.navigate('AddPlan')} color="blue" />
         <FlatList
           data={plans}
